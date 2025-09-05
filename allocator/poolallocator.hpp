@@ -28,13 +28,13 @@
 #define TBB_PREVIEW_MEMORY_POOL 1
 #include "tbb/memory_pool.h"
 
-//#include "numa.h"
+// #include "numa.h"
 #include <iostream>
 
 #ifdef GROWT_USE_CONFIG
 #include "growt_config.h"
 #else
-#define GROWT_MEMPOOL_SIZE 1024ull * 1024ull * 1024ull * 2
+#define GROWT_MEMPOOL_SIZE 1024ull * 1024ull * 1024ull * 16
 #endif
 
 namespace growt
@@ -60,9 +60,14 @@ struct HugePageAlloc
 {
     void* alloc(size_t n)
     {
-        char* memory =
-            (char*)mmap(NULL, n, PROT_READ | PROT_WRITE,
-                        MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB, 0, 0);
+        printf("growt huge alloc size %u GB\n",n/(1024*1024*1024));
+        int fd = open("/mnt/huge/hugepagefile1", O_CREAT | O_RDWR, 0755);
+        if (fd < 0) { throw std::bad_alloc(); }
+
+        char* memory = (char*)mmap(NULL, n, 3, 2013528098, fd, 0);
+        // char* memory =
+        //     (char*)mmap(NULL, n, PROT_READ | PROT_WRITE,
+        //                 MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB, 0, 0);
         if (memory == MAP_FAILED) { throw std::bad_alloc(); }
         std::fill(memory, memory + n, 0);
         return memory;
@@ -101,7 +106,8 @@ class BasePoolAllocator
 
 
     //! Return allocator for different type.
-    template <class U> struct rebind
+    template <class U>
+    struct rebind
     {
         using other = BasePoolAllocator<U, AS>;
     };
@@ -205,7 +211,8 @@ class BasePoolAllocator
     }
 
     //! Destroys in-place the object pointed by p.
-    template <typename SubType> void destroy(SubType* p) const noexcept
+    template <typename SubType>
+    void destroy(SubType* p) const noexcept
     {
         p->~SubType();
     }

@@ -13,9 +13,6 @@
 [submodule "misc/submodules/libcuckoo"]
 	path = misc/submodules/libcuckoo
 	url = https://github.com/efficient/libcuckoo.git
-[submodule "utils"]
-	path = utils
-	url = https://github.com/TooBiased/utils_tm.git
 [submodule "misc/submodules/smhasher"]
 	path = misc/submodules/smhasher
 	url = https://github.com/rurban/smhasher.git

@@ -60,14 +60,10 @@ struct HugePageAlloc
 {
     void* alloc(size_t n)
     {
-        printf("growt huge alloc size %u GB\n",n/(1024*1024*1024));
-        int fd = open("/mnt/huge/hugepagefile1", O_CREAT | O_RDWR, 0755);
-        if (fd < 0) { throw std::bad_alloc(); }
 
-        char* memory = (char*)mmap(NULL, n, 3, 2013528098, fd, 0);
-        // char* memory =
-        //     (char*)mmap(NULL, n, PROT_READ | PROT_WRITE,
-        //                 MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB, 0, 0);
+        char* memory =
+            (char*)mmap(NULL, n, PROT_READ | PROT_WRITE,
+                        MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB, 0, 0);
         if (memory == MAP_FAILED) { throw std::bad_alloc(); }
         std::fill(memory, memory + n, 0);
         return memory;

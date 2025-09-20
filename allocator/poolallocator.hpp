@@ -34,7 +34,7 @@
 #ifdef GROWT_USE_CONFIG
 #include "growt_config.h"
 #else
-#define GROWT_MEMPOOL_SIZE 1024ull * 1024ull * 1024ull * 16
+#define GROWT_MEMPOOL_SIZE 1024ull * 1024ull * 1024ull * 70
 #endif
 
 namespace growt
@@ -56,20 +56,48 @@ struct Malloc
 };
 
 
+#define HUGEPAGE_FILE   "/mnt/huge/hugepagefile"
+#define MMAP_FLAGS_HUGE 2013528098
 struct HugePageAlloc
 {
+
+    int fd;
+
     void* alloc(size_t n)
     {
+        this->fd = open(HUGEPAGE_FILE, O_CREAT | O_RDWR, 0755);
+        if (fd < 0)
+        {
+            printf("Couldn't open file %s\n", HUGEPAGE_FILE);
+            perror("");
+            exit(1);
+        }
 
-        char* memory =
-            (char*)mmap(NULL, n, PROT_READ | PROT_WRITE,
-                        MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB, 0, 0);
-        if (memory == MAP_FAILED) { throw std::bad_alloc(); }
+        char* memory = (char*)mmap(NULL, (uint64_t)n, PROT_READ | PROT_WRITE,
+                                   MMAP_FLAGS_HUGE, fd, 0);
+
+        close(fd);
+        unlink(HUGEPAGE_FILE);
+        if (memory == MAP_FAILED)
+        {
+
+            printf("map failed %d sz %lu\n", errno, n);
+            throw std::bad_alloc();
+        }
         std::fill(memory, memory + n, 0);
+        printf("huge page mmap %p size %lu\n", memory, n);
         return memory;
     }
 
-    void dealloc(void* ptr, size_t size_hint) { munmap(ptr, size_hint); }
+    void dealloc(void* ptr, size_t size_hint)
+    {
+
+        if (ptr)
+        {
+            munmap(ptr, size_hint);
+            printf("huge page %p with sz %lu unmapped\n", ptr, size_hint);
+        }
+    }
 };
 
 
